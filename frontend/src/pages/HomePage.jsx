@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import ClienteCard from "../components/ClienteCard";
 import Loading from "../components/Loading";
 import FilterBar from "../components/FilterBar";
@@ -20,7 +20,7 @@ const HomePage = () => {
   const { query, setQuery, filtered } = useFilter(clientes);
 
   //get
-  const getClientes = async () => {
+  const getClientes = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("http://localhost:3000/api/clientes");
@@ -36,52 +36,33 @@ const HomePage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dispatch]);
 
   useEffect(() => {
     getClientes();
-  }, []);
+  }, [getClientes]);
 
-  //delete
-  const handleDelete = async (id) => {
-    await fetch(`http://localhost:3000/api/cliente/remove/${id}`, {
-      method: "DELETE",
-    });
+  // DELETE
+  const handleDelete = useCallback(
+    async (id) => {
+      await fetch(`http://localhost:3000/api/cliente/remove/${id}`, {
+        method: "DELETE",
+      });
 
-    dispatch({ type: "DELETE_CLIENTE", payload: id });
-  };
+      dispatch({ type: "DELETE_CLIENTE", payload: id });
+    },
+    [dispatch],
+  );
 
-  //resolver
-  const handleResolve = async (id) => {
-    const res = await fetch(`http://localhost:3000/api/cliente/update/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ estado: "resuelto" }),
-    });
-
-    const updated = await res.json();
-
-    dispatch({
-      type: "UPDATE_CLIENTE",
-      payload: updated.data,
-    });
-  };
-
-  //editar
-  const handleEdit = (cliente) => {
-    setClienteEdit(cliente);
-    setShowForm(true);
-  };
-
-  //crear y/o actualizar
-  const handleSubmit = async (data) => {
-    if (clienteEdit) {
+  // RESOLVE
+  const handleResolve = useCallback(
+    async (id) => {
       const res = await fetch(
-        `http://localhost:3000/api/cliente/update/${clienteEdit.id}`,
+        `http://localhost:3000/api/cliente/update/${id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          body: JSON.stringify({ estado: "resuelto" }),
         },
       );
 
@@ -91,25 +72,55 @@ const HomePage = () => {
         type: "UPDATE_CLIENTE",
         payload: updated.data,
       });
-    } else {
-      const res = await fetch("http://localhost:3000/api/cliente", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+    },
+    [dispatch],
+  );
 
-      const nuevo = await res.json();
+  // EDIT
+  const handleEdit = useCallback((cliente) => {
+    setClienteEdit(cliente);
+    setShowForm(true);
+  }, []);
 
-      dispatch({
-        type: "ADD_CLIENTE",
-        payload: nuevo.data,
-      });
-    }
+  // SUBMIT
+  const handleSubmit = useCallback(
+    async (data) => {
+      if (clienteEdit) {
+        const res = await fetch(
+          `http://localhost:3000/api/cliente/update/${clienteEdit.id}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          },
+        );
 
-    setShowForm(false);
-    setClienteEdit(null);
-  };
+        const updated = await res.json();
 
+        dispatch({
+          type: "UPDATE_CLIENTE",
+          payload: updated.data,
+        });
+      } else {
+        const res = await fetch("http://localhost:3000/api/cliente", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+
+        const nuevo = await res.json();
+
+        dispatch({
+          type: "ADD_CLIENTE",
+          payload: nuevo.data,
+        });
+      }
+
+      setShowForm(false);
+      setClienteEdit(null);
+    },
+    [clienteEdit, dispatch],
+  );
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 selection:bg-pink-500/30">
       <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-blue-600/10 to-transparent pointer-events-none" />
