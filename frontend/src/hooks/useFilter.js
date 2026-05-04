@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 const useFilter = (data) => {
   const [query, setQuery] = useState("");
 
-  const filtered = data.filter((item) =>
-    item.nombre.toLowerCase().includes(query.toLowerCase()),
-  );
+  const filtered = useMemo(() => {
+    return data.filter((item) =>
+      item.nombre.toLowerCase().includes(query.toLowerCase()),
+    );
+  }, [data, query]);
 
   return { query, setQuery, filtered };
 };
